@@ -1,45 +1,41 @@
 import React from 'react'
-import fetchWithCache from '../fetchWithCache'
+import {connect} from 'react-redux'
+import {fetchComments} from '../actions'
+import { FABButton, Icon } from 'react-mdl'
 
+@connect(({localItems, remoteItems}) => ({
+  localItems,
+  remoteItems
+}), dispatch => ({
+  fetchComments: topicId => dispatch(fetchComments(topicId))
+}))
 export default class Comment extends React.Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      comments: [],
-      post: {}
-    }
+  componentDidMount () {
+    this.props.fetchComments(this.props.params.postId)
   }
 
-  componentDidMount () {
-    fetchWithCache(`https://hacker-news.firebaseio.com/v0/item/${this.props.params.postId}.json`).then(data => {
-      this.setState({
-        post: data
-      })
-      data.kids.forEach(id => {
-        fetchWithCache(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(data => {
-          this.setState({
-            comments: [
-              ...this.state.comments,
-              data
-            ]
-          })
-        })
-      })
-    })
-  }
+  handleGoBack = () => window.history.back()
 
   render () {
+    const post = this.props.remoteItems[this.props.params.postId] || this.props.localItems[this.props.params.postId] || {}
+
     return (
       <div>
-        <h4>{this.state.post.title}</h4>
+        <h4>{post.title}</h4>
         <ul>
-          {this.state.comments.map(comment => <li>
-            <div>{`${comment.by} wrote:`}</div>
-            <div dangerouslySetInnerHTML={{
-              __html: comment.text
-            }} />
-          </li>)}
+          {post.kids && post.kids.map(commentId => {
+            const comment = this.props.remoteItems[commentId] || this.props.localItems[commentId]
+            return comment ? <li>
+              <div>{`${comment.by} wrote:`}</div>
+              <div dangerouslySetInnerHTML={{
+                __html: comment.text
+              }} />
+            </li> : null
+          })}
         </ul>
+        <FABButton mini ripple onClick={this.handleGoBack}>
+          <Icon name='arrow_back' />
+        </FABButton>
       </div>
     )
   }

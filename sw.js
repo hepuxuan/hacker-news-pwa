@@ -6,6 +6,12 @@ var urlsToCache = [
   '/hacker-news-pwa/build.js',
   '/hacker-news-pwa/material.min.js',
   '/hacker-news-pwa/material.min.css'
+  // '/',
+  // '/#/',
+  // '/index.html',
+  // '/build.js',
+  // '/material.min.js',
+  // '/material.min.css'
 ]
 
 this.addEventListener('install', function (event) {

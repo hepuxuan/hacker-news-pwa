@@ -1,7 +1,7 @@
 var webpack = require('webpack')
 
 module.exports = {
-  entry: './src/index.js',
+  entry: ['whatwg-fetch', './src/index.js'],
   output: {
     path: './',
     filename: 'build.js'
@@ -19,6 +19,7 @@ module.exports = {
     extensions: ['', '.js', '.json']
   },
   plugins: [
-    new webpack.DefinePlugin({ 'process.env.NODE_ENV': '"production"' })
+    new webpack.DefinePlugin({ 'process.env.NODE_ENV': '"production"' }),
+    new webpack.optimize.UglifyJsPlugin()
   ]
 };
