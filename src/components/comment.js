@@ -9,8 +9,8 @@ class Comment extends React.Component {
   }
 
   render () {
-    const comment = this.props.remoteItems[this.props.commentId] || this.props.localItems[this.props.commentId] || {}
-    return (
+    const comment = this.props.remoteItems[this.props.commentId] || this.props.localItems[this.props.commentId]
+    return comment ? (
       <div>
         <div><Icon name="person" /><span>{`${comment.by} wrote:`}</span></div>
         <div dangerouslySetInnerHTML={{
@@ -25,8 +25,7 @@ class Comment extends React.Component {
               remoteItems={this.props.remoteItems} /></li>)}
           </ul> : null
         }
-      </div>
-    )
+      </div>) : null
   }
 }
 
