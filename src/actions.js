@@ -59,7 +59,7 @@ export const fetchComments = topicId => dispatch => {
       dispatch(addRemoteItems({
         [topic.id]: topic
       }))
-      dispatch(fetchItemsFromLocal(topic.kids))
+      topic.kids && dispatch(fetchItemsFromLocal(topic.kids))
     })
   fetch(`https://hacker-news.firebaseio.com/v0/item/${topicId}.json`)
     .then(res => res.json())
@@ -67,7 +67,7 @@ export const fetchComments = topicId => dispatch => {
       dispatch(addRemoteItems({
         [topic.id]: topic
       }))
-      dispatch(fetchItemsFromRemote(topic.kids))
+      topic.kids && dispatch(fetchItemsFromRemote(topic.kids))
     })
 }
 
