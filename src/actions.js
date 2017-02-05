@@ -1,9 +1,16 @@
 import { fetchFromLocal, pushToLocal } from './local'
 import Promise from 'promise-polyfill'
+import firebase from 'firebase'
 
 export const ADD_REMOTE_ITEMS = 'ADD_REMOTE_ITEMS'
 export const ADD_LOCAL_ITEMS = 'ADD_LOCAL_ITEMS'
 export const REPLACE_HOT_TOPICS = 'REPLACE_HOT_TOPICS'
+
+firebase.initializeApp({
+  databaseURL: 'hacker-news.firebaseio.com'
+})
+
+const api = firebase.database().ref('/v0')
 
 const addRemoteItems = remoteItems => ({
   type: ADD_REMOTE_ITEMS,
@@ -20,68 +27,77 @@ const replaceHotTopics = topics => ({
   topics
 })
 
-const fetchItemsFromRemote = items => dispatch => {
-  let buffer = {}
-  Promise.all(items.map(id => {
-    return fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
-      .then(res => res.json())
-      .then(data => {
+function fetchItem (path, cb) {
+  api.child(path)
+    .once('value', (snapshot) => cb(snapshot.val()))
+}
+
+function fetchItemsFromRemote (items) {
+  return dispatch => {
+    let buffer = {}
+    let pushedItems = 0
+    items.forEach(id => {
+      fetchItem(`item/${id}`, data => {
         pushToLocal(id, data)
         buffer[id] = data
-        if (Object.keys(buffer).length >= 10) {
+        if (Object.keys(buffer).length >= 10 || items.length === pushedItems) {
           dispatch(addRemoteItems(buffer))
+          pushedItems += 10
           buffer = {}
         }
       })
-  })).then(() => dispatch(addRemoteItems(buffer)))
-}
-
-const fetchItemsFromLocal = items => dispatch => {
-  let buffer = {}
-  let bufferSize = 0
-  Promise.all(items.map(id => {
-    return fetchFromLocal(id)
-      .then(data => {
-        buffer[id] = data
-        bufferSize++
-        if (bufferSize >= 10) {
-          dispatch(addLocalItems(buffer))
-          buffer = {}
-          bufferSize = 0
-        }
-      })
-  })).then(() => dispatch(addRemoteItems(buffer)))
-}
-
-export const fetchComments = topicId => dispatch => {
-  fetchFromLocal(topicId)
-    .then(topic => {
-      dispatch(addRemoteItems({
-        [topic.id]: topic
-      }))
-      topic.kids && dispatch(fetchItemsFromLocal(topic.kids))
     })
-  fetch(`https://hacker-news.firebaseio.com/v0/item/${topicId}.json`)
-    .then(res => res.json())
-    .then(topic => {
+  }
+}
+
+function fetchItemsFromLocal (items) {
+  return dispatch => {
+    let buffer = {}
+    let bufferSize = 0
+    Promise.all(items.map(id => {
+      return fetchFromLocal(id)
+        .then(data => {
+          buffer[id] = data
+          bufferSize++
+          if (bufferSize >= 10) {
+            dispatch(addLocalItems(buffer))
+            buffer = {}
+            bufferSize = 0
+          }
+        })
+    })).then(() => dispatch(addRemoteItems(buffer)))
+  }
+}
+
+export function fetchComments (topicId) {
+  return dispatch => {
+    fetchFromLocal(topicId)
+      .then(topic => {
+        dispatch(addRemoteItems({
+          [topic.id]: topic
+        }))
+        topic.kids && dispatch(fetchItemsFromLocal(topic.kids))
+      })
+    fetchItem(`item/${topicId}`, topic => {
       dispatch(addRemoteItems({
         [topic.id]: topic
       }))
       topic.kids && dispatch(fetchItemsFromRemote(topic.kids))
     })
+  }
 }
 
-export const fetchHotTopics = () => dispatch => {
-  fetchFromLocal('hot-topics')
-    .then(topics => {
-      dispatch(replaceHotTopics(topics))
-      dispatch(fetchItemsFromLocal(topics))
-    })
-  fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
-    .then(res => res.json())
-    .then(topics => {
-      pushToLocal('hot-topics', topics)
+export function fetchPage (page) {
+  return dispatch => {
+    fetchFromLocal(page)
+      .then(topics => {
+        dispatch(replaceHotTopics(topics))
+        dispatch(fetchItemsFromLocal(topics))
+      })
+    fetchItem(page, topics => {
+      pushToLocal(page, topics)
       dispatch(replaceHotTopics(topics))
       dispatch(fetchItemsFromRemote(topics))
     })
+  }
 }

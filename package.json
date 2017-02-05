@@ -18,15 +18,19 @@
     "webpack": "^1.14.0",
     "webpack-dev-server": "1.14.1"
   },
+  "standard": {
+    "parser": "babel-eslint"
+  },
   "dependencies": {
+    "firebase": "^3.6.8",
+    "promise-polyfill": "^6.0.2",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
     "react-mdl": "^1.9.0",
     "react-redux": "^5.0.2",
-    "react-router": "^4.0.0-2",
+    "react-router": "4.0.0-2",
     "redux": "^3.6.0",
-    "redux-thunk": "^2.2.0",
-    "whatwg-fetch": "^2.0.2"
+    "redux-thunk": "^2.2.0"
   },
   "scripts": {
     "webpackWatch": "webpack -w",
