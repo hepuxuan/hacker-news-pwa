@@ -17,7 +17,7 @@ class Comment extends React.Component {
           __html: comment.text
         }} />
         {
-          comment.kids ? <ul>
+          comment.kids ? <ul className='comment-list'>
             {comment.kids.map(commentId => <li><Comment 
               commentId={commentId}
               fetchComments={this.props.fetchComments}
@@ -45,7 +45,7 @@ export default class Comments extends React.Component {
     return (
       <div>
         <h4>{post.title}</h4>
-        <ul>
+        <ul className='comment-list'>
           {post.kids && post.kids.map(commentId => <li><Comment commentId={commentId}
             fetchComments={this.props.fetchComments}
             localItems={this.props.localItems}

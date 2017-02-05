@@ -1,0 +1,11 @@
+@media (max-width: 600px) {
+  .hide-on-sm {
+    display: none;
+  }
+  .comment-list {
+  	padding-left: 10px;
+  }
+}
+.comment-list {
+	list-style: none;
+}

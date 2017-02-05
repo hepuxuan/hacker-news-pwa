@@ -1,9 +1,9 @@
-var webpack = require('webpack')
+var webpack = require('webpack');
 
 module.exports = {
   entry: ['./src/index.js'],
   output: {
-    path: './',
+    path: './docs',
     filename: 'build.js'
   },
   module: {

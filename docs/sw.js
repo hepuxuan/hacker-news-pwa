@@ -1,17 +1,15 @@
-var CACHE_NAME = 'my-site-cache-v1'
+var CACHE_NAME = 'hacker-news-cache'
 var urlsToCache = [
   '/hacker-news-pwa',
   '/hacker-news-pwa/#/',
-  '/hacker-news-pwa/index.html',
-  '/hacker-news-pwa/build.js',
-  '/hacker-news-pwa/material.min.js',
-  '/hacker-news-pwa/material.min.css'
-  // '/',
-  // '/#/',
-  // '/index.html',
-  // '/build.js',
-  // '/material.min.js',
-  // '/material.min.css'
+  '/docs',
+  '/docs/#/',
+  'index.html',
+  'build.js',
+  'material.min.js',
+  'material.min.css',
+  'font.css',
+  'index.css'
 ]
 
 this.addEventListener('install', function (event) {
