@@ -28,24 +28,27 @@ const replaceHotTopics = topics => ({
 })
 
 function fetchItem (path, cb) {
+  api.child(path).off()
   api.child(path)
-    .once('value', (snapshot) => cb(snapshot.val()))
+    .on('value', (snapshot) => cb(snapshot.val()))
 }
 
 function fetchItemsFromRemote (items) {
-  return dispatch => {
+  return (dispatch, getState) => {
     let buffer = {}
     let pushedItems = 0
     items.forEach(id => {
-      fetchItem(`item/${id}`, data => {
-        pushToLocal(id, data)
-        buffer[id] = data
-        if (Object.keys(buffer).length >= 10 || items.length === pushedItems) {
-          dispatch(addRemoteItems(buffer))
-          pushedItems += 10
-          buffer = {}
-        }
-      })
+      if (!getState().remoteItems[id]) {
+        fetchItem(`item/${id}`, data => {
+          pushToLocal(id, data)
+          buffer[id] = data
+          if (Object.keys(buffer).length >= 10 || items.length === pushedItems) {
+            dispatch(addRemoteItems(buffer))
+            pushedItems += 10
+            buffer = {}
+          }
+        })
+      }
     })
   }
 }
