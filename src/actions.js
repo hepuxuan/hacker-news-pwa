@@ -1,4 +1,4 @@
-import { fetchFromLocal, pushToLocal } from './local'
+import { fetchFromLocal, pushToLocal, clearLocal } from './local'
 import Promise from 'promise-polyfill'
 import firebase from 'firebase'
 
@@ -90,6 +90,8 @@ export function fetchComments (topicId) {
   }
 }
 
+let initialLoad = true
+
 export function fetchPage (page) {
   return dispatch => {
     fetchFromLocal(page)
@@ -98,9 +100,12 @@ export function fetchPage (page) {
         dispatch(fetchItemsFromLocal(topics))
       })
     fetchItem(page, topics => {
-      pushToLocal(page, topics)
-      dispatch(replaceHotTopics(topics))
-      dispatch(fetchItemsFromRemote(topics))
+      (initialLoad ? clearLocal() : Promise.resolve()).then(() => {
+        initialLoad = false
+        pushToLocal(page, topics)
+        dispatch(replaceHotTopics(topics))
+        dispatch(fetchItemsFromRemote(topics))
+      })
     })
   }
 }
