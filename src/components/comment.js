@@ -29,12 +29,16 @@ class Comment extends React.Component {
   }
 }
 
-@connect(({localItems, remoteItems}) => ({
-  localItems,
-  remoteItems
-}), dispatch => ({
-  fetchComments: postId => dispatch(fetchComments(postId))
-}))
+@connect(
+  ({localItems, remoteItems}) => ({
+    localItems,
+    remoteItems
+  }), dispatch => ({
+    fetchComments(postId) {
+      dispatch(fetchComments(postId))
+    }
+  })
+)
 export default class Comments extends React.Component {
   componentDidMount () {
     this.props.fetchComments(this.props.params.postId)

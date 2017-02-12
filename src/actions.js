@@ -33,6 +33,8 @@ function fetchItem (path, cb) {
     .on('value', (snapshot) => cb(snapshot.val()))
 }
 
+const BUFFER_SIZE = 100
+
 function fetchItemsFromRemote (items) {
   return (dispatch, getState) => {
     let buffer = {}
@@ -42,9 +44,9 @@ function fetchItemsFromRemote (items) {
         fetchItem(`item/${id}`, data => {
           pushToLocal(id, data)
           buffer[id] = data
-          if (Object.keys(buffer).length >= 10 || items.length === pushedItems) {
+          if (Object.keys(buffer).length >= BUFFER_SIZE || items.length === pushedItems) {
             dispatch(addRemoteItems(buffer))
-            pushedItems += 10
+            pushedItems += BUFFER_SIZE
             buffer = {}
           }
         })
@@ -56,16 +58,16 @@ function fetchItemsFromRemote (items) {
 function fetchItemsFromLocal (items) {
   return dispatch => {
     let buffer = {}
-    let bufferSize = 0
+    let bufferLength = 0
     Promise.all(items.map(id => {
       return fetchFromLocal(id)
         .then(data => {
           buffer[id] = data
-          bufferSize++
-          if (bufferSize >= 10) {
+          bufferLength++
+          if (bufferLength >= BUFFER_SIZE) {
             dispatch(addLocalItems(buffer))
             buffer = {}
-            bufferSize = 0
+            bufferLength = 0
           }
         })
     })).then(() => dispatch(addRemoteItems(buffer)))

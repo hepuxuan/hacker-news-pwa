@@ -3,13 +3,17 @@ import {Link} from 'react-router'
 import {connect} from 'react-redux'
 import {fetchPage} from '../actions'
 
-@connect(({hotTopics, localItems, remoteItems}) => ({
-  hotTopics,
-  localItems,
-  remoteItems
-}), dispatch => ({
-  fetchPage: page => dispatch(fetchPage(page))
-}))
+@connect(
+  ({hotTopics, localItems, remoteItems}) => ({
+    hotTopics,
+    localItems,
+    remoteItems
+  }), dispatch => ({
+    fetchPage(page) {
+      dispatch(fetchPage(page))
+    }
+  })
+)
 class Topics extends React.Component {
   componentDidMount () {
     this.props.fetchPage(this.props.page)

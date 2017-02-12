@@ -2,8 +2,9 @@ var CACHE_NAME = 'hacker-news-cache'
 var urlsToCache = [
   '/hacker-news-pwa',
   '/hacker-news-pwa/#/',
-  '/docs',
-  '/docs/#/',
+  // Uncomment when running locally
+  // '/docs', 
+  // '/docs/#/',
   'index.html',
   'build.js',
   'material.min.js',
