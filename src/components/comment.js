@@ -1,7 +1,6 @@
 import React from 'react'
 import {connect} from 'react-redux'
 import {fetchComments} from '../actions'
-import { Icon } from 'react-mdl'
 
 class Comment extends React.Component {
   componentDidMount () {
@@ -9,20 +8,19 @@ class Comment extends React.Component {
   }
 
   render () {
-    const comment = this.props.remoteItems[this.props.commentId] || this.props.localItems[this.props.commentId]
+    const comment = this.props.items[this.props.commentId]
     return comment ? (
       <div>
-        <div><Icon name="person" /><span>{`${comment.by} wrote:`}</span></div>
+        <div><span>{`${comment.by} wrote:`}</span></div>
         <div dangerouslySetInnerHTML={{
           __html: comment.text
         }} />
         {
           comment.kids ? <ul className='comment-list'>
-            {comment.kids.map(commentId => <li><Comment 
+            {comment.kids.map(commentId => <li key={commentId}><Comment
               commentId={commentId}
               fetchComments={this.props.fetchComments}
-              localItems={this.props.localItems}
-              remoteItems={this.props.remoteItems} /></li>)}
+              items={this.props.items} /></li>)}
           </ul> : null
         }
       </div>) : null
@@ -30,11 +28,13 @@ class Comment extends React.Component {
 }
 
 @connect(
-  ({localItems, remoteItems}) => ({
-    localItems,
-    remoteItems
+  ({local, remote}) => ({
+    items: {
+      ...local.items,
+      ...remote.items
+    }
   }), dispatch => ({
-    fetchComments(postId) {
+    fetchComments (postId) {
       dispatch(fetchComments(postId))
     }
   })
@@ -45,17 +45,14 @@ export default class Comments extends React.Component {
   }
 
   render () {
-    const post = this.props.remoteItems[this.props.params.postId] || this.props.localItems[this.props.params.postId] || {}
-    return (
-      <div>
-        <h4>{post.title}</h4>
-        <ul className='comment-list'>
-          {post.kids && post.kids.map(commentId => <li><Comment commentId={commentId}
-            fetchComments={this.props.fetchComments}
-            localItems={this.props.localItems}
-            remoteItems={this.props.remoteItems} /></li>)}
-        </ul>
-      </div>
-    )
+    const post = this.props.items[this.props.params.postId]
+    return post ? <div>
+      <h4>{post.title}</h4>
+      <ul className='comment-list'>
+        {post.kids && post.kids.map(commentId => <li><Comment commentId={commentId}
+          fetchComments={this.props.fetchComments}
+          items={this.props.items} /></li>)}
+      </ul>
+    </div> : null
   }
 }
