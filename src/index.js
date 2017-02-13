@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import Router from 'react-router/HashRouter'
 import Match from 'react-router/Match'
+import Redirect from 'react-router/Redirect'
 import Link from 'react-router/Link'
 import { Layout, Header, Content, Navigation, Drawer } from 'react-mdl'
 import Topics from './components/topics'
@@ -64,8 +65,6 @@ const store = createStore(
   applyMiddleware(thunk)
 )
 
-window.store = store
-
 function closeDrawer () {
   document.querySelector('.mdl-layout').MaterialLayout.toggleDrawer()
 }
@@ -89,7 +88,7 @@ const App = (
           </Navigation>
         </Drawer>
         <Content style={{marginLeft: '10px', marginRight: '10px'}}>
-          <Match exactly pattern='/' component={Topics} />
+          <Match exactly pattern='/' render={() => <Redirect to='/topstories' />} />
           <Match exactly pattern='/:page' component={Topics} />
           <Match exactly pattern='/post/:postId/comment' component={Comments} />
         </Content>
