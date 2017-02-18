@@ -2,9 +2,11 @@ import { fetchFromLocal, pushToLocal, clearLocal } from './local'
 import Promise from 'promise-polyfill'
 import firebase from 'firebase'
 import throttle from 'lodash/throttle'
+import Push from 'push.js'
 
 export const ADD_ITEMS = 'ADD_ITEMS'
 export const REPLACE_PAGE_ITEMS = 'REPLACE_PAGE_ITEMS'
+const PUSH_INTERVAL = 10 * 60 * 1000
 
 firebase.initializeApp({
   databaseURL: 'hacker-news.firebaseio.com'
@@ -31,7 +33,7 @@ function fetchItem (path, cb) {
     .on('value', (snapshot) => cb(snapshot.val()))
 }
 
-function fetchItemsFromRemote (items) {
+function fetchItemsFromRemote (items, cb) {
   return (dispatch, getState) => {
     let buffer = {}
     const dispatchUpdate = throttle(() => {
@@ -43,6 +45,9 @@ function fetchItemsFromRemote (items) {
         fetchItem(`item/${id}`, data => {
           pushToLocal(id, data)
           buffer[id] = data
+          if (cb) {
+            cb(data)
+          }
           dispatchUpdate()
         })
       }
@@ -113,13 +118,34 @@ export function fetchPage (page) {
           dispatch(fetchItemsFromLocal(topics))
         })
     }
+    let pushItems = []
+    const sentPush = throttle(() => {
+      Push.create("New posts available", {
+        body: pushItems
+          .sort((i, j) => j.score - i.score)
+          .map(i => i.title)
+          .slice(0, 5)
+          .join('\n'),
+        icon: 'icons/icon_048.png',
+        timeout: 4000,
+        onClick: function () {
+          window.focus();
+          this.close();
+        }
+      })
+      pushItems = []
+    }, PUSH_INTERVAL)
+    const newPostCb = post => {
+      pushItems.push(post)
+      sentPush()
+    }
     if (getState().remote.pageItems[page].length === 0) {
       fetchItem(page, topics => {
         (initialLoad ? clearLocal() : Promise.resolve()).then(() => {
           initialLoad = false
           pushToLocal(page, topics)
           dispatch(replacePageItems(page, topics, 'remote'))
-          dispatch(fetchItemsFromRemote(topics))
+          dispatch(fetchItemsFromRemote(topics, newPostCb))
         })
       })
     }
