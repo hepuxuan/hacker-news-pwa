@@ -110,6 +110,24 @@ export function fetchComments (topicId) {
 let initialLoad = true
 
 export function fetchPage (page) {
+  let pushItems = []
+  const sentPush = throttle(() => {
+    Push.create("New posts available", {
+      body: pushItems
+        .sort((i, j) => j.score - i.score)
+        .map(i => i.title)
+        .slice(0, 5)
+        .join('\n'),
+      icon: 'icons/icon_048.png',
+      timeout: 60 * 1000,
+      onClick: function (e) {
+        console.log(clients)
+        window.focus();
+        this.close();
+      }
+    })
+    pushItems = []
+  }, PUSH_INTERVAL)
   return (dispatch, getState) => {
     if (getState().local.pageItems[page].length === 0) {
       fetchFromLocal(page)
@@ -118,34 +136,19 @@ export function fetchPage (page) {
           dispatch(fetchItemsFromLocal(topics))
         })
     }
-    let pushItems = []
-    const sentPush = throttle(() => {
-      Push.create("New posts available", {
-        body: pushItems
-          .sort((i, j) => j.score - i.score)
-          .map(i => i.title)
-          .slice(0, 5)
-          .join('\n'),
-        icon: 'icons/icon_048.png',
-        timeout: 4000,
-        onClick: function () {
-          window.focus();
-          this.close();
-        }
-      })
-      pushItems = []
-    }, PUSH_INTERVAL)
     const newPostCb = post => {
-      pushItems.push(post)
-      sentPush()
+      if (!document.hasFocus()) {
+        pushItems.push(post)
+        sentPush()
+      }
     }
     if (getState().remote.pageItems[page].length === 0) {
       fetchItem(page, topics => {
         (initialLoad ? clearLocal() : Promise.resolve()).then(() => {
-          initialLoad = false
           pushToLocal(page, topics)
           dispatch(replacePageItems(page, topics, 'remote'))
           dispatch(fetchItemsFromRemote(topics, newPostCb))
+          initialLoad = false
         })
       })
     }
