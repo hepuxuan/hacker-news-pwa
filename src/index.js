@@ -6,64 +6,37 @@ import Redirect from 'react-router/Redirect'
 import Link from 'react-router/Link'
 import { Layout, Header, Content, Navigation, Drawer } from 'react-mdl'
 import Topics from './components/topics'
-import Comments from './components/comment'
+import Topic from './components/topic'
 import { createStore, applyMiddleware } from 'redux'
+import rootReducer from './reducer'
 import thunk from 'redux-thunk'
-import { ADD_ITEMS, REPLACE_PAGE_ITEMS } from './actions'
 import { Provider } from 'react-redux'
-
-const initialState = {
-  local: {
-    pageItems: {
-      topstories: [],
-      beststories: [],
-      newstories: []
-    },
-    items: {}
-  },
-  remote: {
-    pageItems: {
-      topstories: [],
-      beststories: [],
-      newstories: []
-    },
-    items: {}
-  }
-}
-
-const reducer = (state = initialState, action) => {
-  switch (action.type) {
-    case ADD_ITEMS:
-      return {
-        ...state,
-        [action.env]: {
-          ...state[action.env],
-          items: {
-            ...state[action.env].items,
-            ...action.items
-          }
-        }
-      }
-    case REPLACE_PAGE_ITEMS:
-      return {
-        ...state,
-        [action.env]: {
-          ...state[action.env],
-          pageItems: {
-            ...state[action.env].pageItems,
-            [action.page]: action.pageItems
-          }
-        }
-      }
-    default:
-      return state
-  }
-}
+import keyBy from 'lodash/keyBy'
+import {save} from './local'
+import throttle from 'lodash/throttle'
 
 const store = createStore(
-  reducer,
+  rootReducer,
   applyMiddleware(thunk)
 )
+
+
+let currentEntities
+const persistState = throttle(() => {
+  const previousEntities = currentEntities
+  currentEntities = store.getState().entities
+
+  if (previousEntities !== currentEntities) {
+    const {byIds, items} = currentEntities
+    save('hn_state', {
+      byIds,
+      items: keyBy(byIds.topstories.concat(byIds.beststories).concat(byIds.newstories)
+        .map(id => items[id]), 'id')
+    })
+  }
+}, 2500)
+
+store.subscribe(persistState)
 
 function closeDrawer () {
   document.querySelector('.mdl-layout').MaterialLayout.toggleDrawer()
@@ -73,7 +46,7 @@ const App = (
   <Provider store={store}>
     <Router>
       <Layout fixedHeader>
-        <Header title='Hacker News'>
+        <Header title='Hacker News PWA'>
           <Navigation className='hide-on-sm'>
             <Link to='/newstories'>New Stories</Link>
             <Link to='/topstories'>Top Stories</Link>
@@ -90,7 +63,7 @@ const App = (
         <Content style={{marginLeft: '10px', marginRight: '10px'}}>
           <Match exactly pattern='/' render={() => <Redirect to='/topstories' />} />
           <Match exactly pattern='/:page' component={Topics} />
-          <Match exactly pattern='/post/:postId/comment' component={Comments} />
+          <Match exactly pattern='/topic/:postId' component={Topic} />
         </Content>
       </Layout>
     </Router>

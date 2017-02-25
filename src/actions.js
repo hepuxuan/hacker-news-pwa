@@ -1,12 +1,11 @@
-import { fetchFromLocal, pushToLocal, clearLocal } from './local'
 import Promise from 'promise-polyfill'
 import firebase from 'firebase'
-import throttle from 'lodash/throttle'
-import Push from 'push.js'
+import keyBy from 'lodash/keyBy'
 
-export const ADD_ITEMS = 'ADD_ITEMS'
-export const REPLACE_PAGE_ITEMS = 'REPLACE_PAGE_ITEMS'
-const PUSH_INTERVAL = 10 * 60 * 1000
+export const REPLACE_PAGE = 'REPLACE_PAGE'
+export const REPLACE_ITEM = 'REPLACE_ITEM'
+export const START_LOADING = 'START_LOADING'
+export const FINISH_LOADING = 'FINISH_LOADING'
 
 firebase.initializeApp({
   databaseURL: 'hacker-news.firebaseio.com'
@@ -14,18 +13,34 @@ firebase.initializeApp({
 
 const api = firebase.database().ref('/v0')
 
-const addItems = (items, env) => ({
-  type: ADD_ITEMS,
-  items,
-  env
-})
+function startLoading (page) {
+  return {
+    type: START_LOADING,
+    page
+  }
+}
 
-const replacePageItems = (page, pageItems, env) => ({
-  type: REPLACE_PAGE_ITEMS,
-  page,
-  pageItems,
-  env
-})
+function finishLoading (page) {
+  return {
+    type: FINISH_LOADING,
+    page
+  }
+}
+
+function replacePage (items, page) {
+  return {
+    type: REPLACE_PAGE,
+    items,
+    page
+  }
+}
+
+function replaceItem (item) {
+  return {
+    type: REPLACE_ITEM,
+    item
+  }
+}
 
 function fetchItem (path, cb) {
   api.child(path).off()
@@ -33,124 +48,84 @@ function fetchItem (path, cb) {
     .on('value', (snapshot) => cb(snapshot.val()))
 }
 
-function fetchItemsFromRemote (items, cb) {
-  return (dispatch, getState) => {
-    let buffer = {}
-    const dispatchUpdate = throttle(() => {
-      dispatch(addItems(buffer, 'remote'))
-      buffer = {}
-    }, 300)
-    items.forEach(id => {
-      if (!getState().remote.items[id]) {
-        fetchItem(`item/${id}`, data => {
-          pushToLocal(id, data)
-          buffer[id] = data
-          if (cb) {
-            cb(data)
-          }
-          dispatchUpdate()
-        })
-      }
-    })
-  }
-}
-
-function fetchItemsFromLocal (items) {
-  return (dispatch, getState) => {
-    let buffer = {}
-    const dispatchUpdate = throttle(() => {
-      dispatch(addItems(buffer, 'remote'))
-      buffer = {}
-    }, 150)
-    Promise.all(items.map(id => {
-      if (!getState().local.items[id]) {
-        return fetchFromLocal(id)
-          .then(data => {
-            buffer[id] = data
-            dispatchUpdate()
-          })
-      } else {
-        return Promise.resolve()
-      }
-    })).then(() => dispatch(addItems(buffer, 'local')))
-  }
-}
-
-export function fetchComments (topicId) {
-  return (dispatch, getState) => {
-    const promise = new Promise((resolve) => {
-      const cacheRemoteTopic = getState().local.items[topicId]
-      if (!cacheRemoteTopic) {
-        fetchFromLocal(topicId).then(topic => resolve(topic))
-      } else {
-        resolve(cacheRemoteTopic)
-      }
-    })
-    promise.then(topic => {
-      dispatch(addItems({
-        [topic.id]: topic
-      }, 'local'))
-      topic.kids && dispatch(fetchItemsFromLocal(topic.kids))
-    })
-
-    const cacheRemoteTopic = getState().remote.items[topicId]
-    if (!cacheRemoteTopic) {
-      fetchItem(`item/${topicId}`, topic => {
-        dispatch(addItems({
-          [topic.id]: topic
-        }, 'remote'))
-        topic.kids && dispatch(fetchItemsFromRemote(topic.kids))
+function connectItem (id, state, cb) {
+  if (!state.connectedItems[`item/${id}`]) {
+    return new Promise(resolve => {
+      fetchItem(`item/${id}`, (val) => {
+        cb(val)
+        resolve(val)
       })
-    } else {
-      cacheRemoteTopic.kids && dispatch(fetchItemsFromRemote(cacheRemoteTopic.kids))
-    }
+    })
+  } else {
+    return Promise.resolve(state.entities.items[id])
   }
 }
 
-let initialLoad = true
-
-export function fetchPage (page) {
-  let pushItems = []
-  const sentPush = throttle(() => {
-    Push.create("New posts available", {
-      body: pushItems
-        .sort((i, j) => j.score - i.score)
-        .map(i => i.title)
-        .slice(0, 5)
-        .join('\n'),
-      icon: 'icons/icon_048.png',
-      timeout: 60 * 1000,
-      onClick: function (e) {
-        console.log(clients)
-        window.focus();
-        this.close();
-      }
+function connectPage (page, state, cb) {
+  if (!state.connectedItems[page]) {
+    return new Promise(resolve => {
+      fetchItem(page, (val) => {
+        cb(val)
+        resolve(val)
+      })
     })
-    pushItems = []
-  }, PUSH_INTERVAL)
+  } else {
+    return Promise.resolve(state.entities.byIds[page])
+  }
+}
+
+function connectItems (ids, state, cb) {
+  return Promise.all(ids.map(id => {
+    return connectItem(id, state, cb)
+  }))
+}
+
+function fetchCommentRec (id, state, cb) {
+  return connectItem(id, state, cb).then(comment => {
+    const promise = comment.kids
+      ? Promise.all(comment.kids.map(id => fetchCommentRec(id, state, cb))) : Promise.resolve()
+
+    return promise.then(() => {
+      cb(comment)
+    }).catch(console.warn.bind(console))
+  })
+}
+
+export function fetchTopic (topicId) {
   return (dispatch, getState) => {
-    if (getState().local.pageItems[page].length === 0) {
-      fetchFromLocal(page)
-        .then(topics => {
-          dispatch(replacePageItems(page, topics, 'local'))
-          dispatch(fetchItemsFromLocal(topics))
-        })
-    }
-    const newPostCb = post => {
-      if (!document.hasFocus()) {
-        pushItems.push(post)
-        sentPush()
-      }
-    }
-    if (getState().remote.pageItems[page].length === 0) {
-      fetchItem(page, topics => {
-        (initialLoad ? clearLocal() : Promise.resolve()).then(() => {
-          pushToLocal(page, topics)
-          dispatch(replacePageItems(page, topics, 'remote'))
-          dispatch(fetchItemsFromRemote(topics, newPostCb))
-          initialLoad = false
+    dispatch(startLoading('topic'))
+    new Promise(resolve => {
+      connectItem(topicId, getState(), topic => {
+        dispatch(replaceItem(topic))
+      }).then(topic => {
+        const promise = topic.kids ? Promise.all(topic.kids.map(id => fetchCommentRec(id, getState(), item => {
+          dispatch(replaceItem(item))
+        }))) : Promise.resolve()
+
+        return promise.then(() => {
+          dispatch(replaceItem(topic))
+        }).then(resolve).catch(console.warn.bind(console))
+      })
+    }).then(() => {
+      dispatch(finishLoading('topic'))
+    }).catch(console.warn.bind(console))
+  }
+}
+
+export function fetchTopics (page) {
+  return (dispatch, getState) => {
+    dispatch(startLoading(page))
+    new Promise(resolve => {
+      connectPage(page, getState(), ids => {
+        connectItems(ids, getState(), topic => {
+          dispatch(replaceItem(topic))
+        }).then(() => {
+          resolve()
+          dispatch(replacePage(ids, page))
         })
       })
-    }
+    }).then(() => {
+      dispatch(finishLoading(page))
+    }).catch(console.warn.bind(console))
   }
 }

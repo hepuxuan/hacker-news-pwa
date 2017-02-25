@@ -1,38 +1,37 @@
 import React from 'react'
 import {Link} from 'react-router'
 import {connect} from 'react-redux'
-import {fetchPage} from '../actions'
+import {fetchTopics} from '../actions'
 
 @connect(
-  ({local, remote}) => ({
-    pageItems: {
-      ...local.pageItems,
-      ...remote.pageItems
-    },
-    items: {
-      ...local.items,
-      ...remote.items
-    }
+  ({entities, ui}) => ({
+    byIds: entities.byIds,
+    items: entities.items,
+    ui
   }), dispatch => ({
-    fetchPage (page) {
-      dispatch(fetchPage(page))
+    fetchTopics (page) {
+      dispatch(fetchTopics(page))
     }
   })
 )
 export default class Topics extends React.Component {
   componentDidMount () {
-    this.props.fetchPage(this.props.params.page)
+    this.props.fetchTopics(this.props.params.page)
   }
 
   componentWillReceiveProps (nextProps) {
     if (this.props.params.page !== nextProps.params.page) {
-      this.props.fetchPage(nextProps.params.page)
+      this.props.fetchTopics(nextProps.params.page)
     }
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !nextProps.ui[nextProps.params.page].isLoading
   }
 
   render () {
     return (<ol>{
-      this.props.pageItems[this.props.params.page].map(id => {
+      this.props.byIds[this.props.params.page].map(id => {
         const post = this.props.items[id]
         return post ? <li key={id}>
           <a href={post.url}>{post.title}</a>
@@ -41,7 +40,7 @@ export default class Topics extends React.Component {
             {
               post.descendants ? <span>
                 {` | ${post.descendants} `}
-                <Link to={`/post/${post.id}/comment`}>comment</Link>
+                <Link to={`/topic/${post.id}`}>comment</Link>
               </span> : null
             }
           </p>
