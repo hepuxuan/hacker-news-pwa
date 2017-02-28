@@ -2,6 +2,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {fetchTopic} from '../actions'
 import { Icon } from 'react-mdl'
+import Spinner from './Spinner'
 
 class Comment extends React.Component {
   constructor (props) {
@@ -42,7 +43,7 @@ class Comment extends React.Component {
             </ul> : null
           }
         </div>
-      </div>) : null
+      </div>) : <Spinner />
   }
 }
 

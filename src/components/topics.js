@@ -2,6 +2,7 @@ import React from 'react'
 import {Link} from 'react-router'
 import {connect} from 'react-redux'
 import {fetchTopics} from '../actions'
+import Spinner from './Spinner'
 
 @connect(
   ({entities, ui}) => ({
@@ -30,22 +31,25 @@ export default class Topics extends React.Component {
   }
 
   render () {
-    return (<ol>{
-      this.props.byIds[this.props.params.page].map(id => {
-        const post = this.props.items[id]
-        return post ? <li key={id}>
-          <a href={post.url}>{post.title}</a>
-          <p>
-            {`${post.score} points by ${post.by}`}
-            {
-              post.descendants ? <span>
-                {` | ${post.descendants} `}
-                <Link to={`/topic/${post.id}`}>comment</Link>
-              </span> : null
-            }
-          </p>
-        </li> : null
-      })
-    }</ol>)
+    return (
+      this.props.byIds[this.props.params.page].length === 0
+        ? <Spinner /> : <ol>{
+            this.props.byIds[this.props.params.page].map(id => {
+              const post = this.props.items[id]
+              return post ? <li key={id}>
+                <a href={post.url}>{post.title}</a>
+                <p>
+                  {`${post.score} points by ${post.by}`}
+                  {
+                    post.descendants ? <span>
+                      {` | ${post.descendants} `}
+                      <Link to={`/topic/${post.id}`}>comment</Link>
+                    </span> : null
+                  }
+                </p>
+              </li> : null
+            })}
+          </ol>
+    )
   }
 }

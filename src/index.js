@@ -20,7 +20,6 @@ const store = createStore(
   applyMiddleware(thunk)
 )
 
-
 let currentEntities
 const persistState = throttle(() => {
   const previousEntities = currentEntities
