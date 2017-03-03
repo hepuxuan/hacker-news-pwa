@@ -1,4 +1,4 @@
-#[hacker-news pwa
+# hacker-news pwa
 
 ## dome:
 https://hepuxuan.github.io/hacker-news-pwa/

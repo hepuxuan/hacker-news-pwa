@@ -52,6 +52,7 @@ function connectItem (id, state, cb) {
   if (!state.connectedItems[`item/${id}`]) {
     return new Promise(resolve => {
       fetchItem(`item/${id}`, (val) => {
+        val.source = 'remote'
         cb(val)
         resolve(val)
       })
@@ -108,7 +109,10 @@ export function fetchTopic (topicId) {
       })
     }).then(() => {
       dispatch(finishLoading('topic'))
-    }).catch(console.warn.bind(console))
+    }).catch((e) => {
+      console.warn(e)
+      dispatch(finishLoading('topic'))
+    })
   }
 }
 
@@ -126,6 +130,9 @@ export function fetchTopics (page) {
       })
     }).then(() => {
       dispatch(finishLoading(page))
-    }).catch(console.warn.bind(console))
+    }).catch((e) => {
+      console.warn(e)
+      dispatch(finishLoading(page))
+    })
   }
 }

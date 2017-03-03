@@ -21,29 +21,28 @@ class Comment extends React.Component {
 
   render () {
     const comment = this.props.items[this.props.commentId]
-    return comment ? (
+    return comment ? <div>
       <div>
-        <div>
-          <Icon style={{fontSize: '1em'}} name="person" />
-          <span style={{color: '#828282'}}>
-            {`${comment.by}`}&nbsp;
-            <a style={{textDecoration: 'none'}} onClick={this.toggleComment} href="#">{this.state.isVisible
-              ? '[-]' : '[+]'}</a>
-          </span>
-        </div>
-        <div style={ this.state.isVisible ? {} : {display: 'none'}}>
-          <div dangerouslySetInnerHTML={{
-            __html: comment.text
-          }} />
-          {
-            comment.kids ? <ul className='comment-list'>
-              {comment.kids.map(commentId => <li key={commentId}><Comment
-                commentId={commentId}
-                items={this.props.items} /></li>)}
-            </ul> : null
-          }
-        </div>
-      </div>) : <Spinner />
+        <Icon style={{fontSize: '1em'}} name="person" />
+        <span style={{color: '#828282'}}>
+          {`${comment.by}`}&nbsp;
+          <a style={{textDecoration: 'none'}} onClick={this.toggleComment} href="#">{this.state.isVisible
+            ? '[-]' : '[+]'}</a>
+        </span>
+      </div>
+      <div style={ this.state.isVisible ? {} : {display: 'none'}}>
+        <div dangerouslySetInnerHTML={{
+          __html: comment.text
+        }} />
+        {
+          comment.kids ? <ul className='comment-list'>
+            {comment.kids.map(commentId => <li key={commentId}><Comment
+              commentId={commentId}
+              items={this.props.items} /></li>)}
+          </ul> : null
+        }
+      </div>
+    </div> : null
   }
 }
 
@@ -68,12 +67,14 @@ export default class Topic extends React.Component {
 
   render () {
     const post = this.props.items[this.props.params.postId]
-    return post ? <div>
-      <h4>{post.title}</h4>
-      <ul className='comment-list'>
-        {post.kids && post.kids.map(commentId => <li><Comment commentId={commentId}
-          items={this.props.items} /></li>)}
-      </ul>
-    </div> : null
+    const showSpinner = !post || (post && post.kids && post.kids.find(kid => !this.props.items[kid]))
+    return showSpinner
+      ? <Spinner /> : <div>
+        <h4>{post.title}</h4>
+        <ul className='comment-list'>
+          {post.kids && post.kids.map(commentId => <li key={commentId}><Comment commentId={commentId}
+            items={this.props.items} /></li>)}
+        </ul>
+      </div>
   }
 }

@@ -14,6 +14,7 @@ import { Provider } from 'react-redux'
 import keyBy from 'lodash/keyBy'
 import {save} from './local'
 import throttle from 'lodash/throttle'
+import flatten from 'lodash/flatten'
 
 const store = createStore(
   rootReducer,
@@ -26,11 +27,14 @@ const persistState = throttle(() => {
   currentEntities = store.getState().entities
 
   if (previousEntities !== currentEntities) {
+    // only persist items that are accessible from home page to keep localStorage under 5mb
     const {byIds, items} = currentEntities
+    const allTopics = byIds.topstories.concat(byIds.beststories).concat(byIds.newstories)
+    // only persist comments 1 level deep to avoid an recursive algorithm to find all comments
+    const allComents = flatten(allTopics.map(id => items[id]).map(item => item.kids || []))
     save('hn_state', {
       byIds,
-      items: keyBy(byIds.topstories.concat(byIds.beststories).concat(byIds.newstories)
-        .map(id => items[id]), 'id')
+      items: keyBy(allTopics.concat(allComents).map(id => items[id]), 'id')
     })
   }
 }, 2500)
